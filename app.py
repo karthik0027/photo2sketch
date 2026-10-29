@@ -1,4 +1,5 @@
 import io
+import urllib.request
 from pathlib import Path
 
 import cv2
@@ -13,10 +14,13 @@ st.set_page_config(page_title="Photo → Sketch GAN", page_icon="✏️", layout
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 WEIGHTS = Path(__file__).parent / "G_final.pth"
+WEIGHTS_URL = "https://github.com/karthik0027/photo2sketch/releases/download/v1/G_final.pth"
 
 
 @st.cache_resource
 def load_generator():
+    if not WEIGHTS.exists():
+        urllib.request.urlretrieve(WEIGHTS_URL, WEIGHTS)
     G = UNetGenerator().to(DEVICE)
     G.load_state_dict(torch.load(WEIGHTS, map_location=DEVICE))
     G.eval()
@@ -49,10 +53,8 @@ def to_png_bytes(img):
 st.title("✏️ Photo → Sketch")
 st.caption("A Pix2Pix GAN (U-Net generator + PatchGAN discriminator) that draws your photo as a pencil sketch.")
 
-if not WEIGHTS.exists():
-    st.error(f"{WEIGHTS.name} not found. Put G_final.pth in the same folder as app.py.")
-    st.stop()
-G = load_generator()
+with st.spinner("Loading model (first run downloads the weights)..."):
+    G = load_generator()
 
 file = st.file_uploader("Upload a photo", type=["jpg", "jpeg", "png", "webp"])
 if file is None:
